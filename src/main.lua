@@ -1,75 +1,61 @@
-warn("Rain FPS Menu Loaded (Delta)")
+warn("Rain FPS Logger Started (Delta Safe)")
 
--- ===== REQUEST FIX FOR DELTA =====
 local request = request or http_request or (syn and syn.request)
-if not request then
-    warn("Delta: request not supported, webhook disabled until supported")
-end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
-local CoreGui = game:GetService("CoreGui")
-local player = Players.LocalPlayer
 
--- ===== SETTINGS =====
 local WEBHOOK_URL = ""
 local SEND_INTERVAL = 10
-local SEND_ENABLED = false
 
--- ===== GUI =====
-local gui = Instance.new("ScreenGui")
-gui.Name = "RainFPSMenu"
-pcall(function()
-    gui.Parent = CoreGui
+-- === COMMAND QUA CHAT ===
+-- !webhook <link>
+-- !fps on / off
+
+local SEND = false
+
+Players.LocalPlayer.Chatted:Connect(function(msg)
+    if msg:sub(1,8) == "!webhook" then
+        WEBHOOK_URL = msg:sub(10)
+        warn("Webhook set")
+    elseif msg == "!fps on" then
+        SEND = true
+        warn("FPS sending ON")
+    elseif msg == "!fps off" then
+        SEND = false
+        warn("FPS sending OFF")
+    end
 end)
 
--- FPS label
-local fpsLabel = Instance.new("TextLabel", gui)
-fpsLabel.Size = UDim2.new(0, 150, 0, 35)
-fpsLabel.Position = UDim2.new(0, 10, 0, 10)
-fpsLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
-fpsLabel.BackgroundTransparency = 0.2
-fpsLabel.TextColor3 = Color3.fromRGB(0,255,0)
-fpsLabel.Font = Enum.Font.SourceSansBold
-fpsLabel.TextSize = 20
-fpsLabel.Text = "FPS: ..."
+-- === FPS COUNTER ===
+local frames, fps = 0, 0
+local last = tick()
+local lastSend = 0
 
--- Menu frame
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 260, 0, 170)
-frame.Position = UDim2.new(0, 10, 0, 55)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
-frame.BackgroundTransparency = 0.15
-frame.BorderSizePixel = 0
+RunService.RenderStepped:Connect(function()
+    frames += 1
+    if tick() - last >= 1 then
+        fps = frames
+        frames = 0
+        last = tick()
+        print("FPS:", fps)
+    end
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "Rain FPS Menu (Delta)"
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
-
-local input = Instance.new("TextBox", frame)
-input.Position = UDim2.new(0, 10, 0, 40)
-input.Size = UDim2.new(1, -20, 0, 30)
-input.PlaceholderText = "Paste Discord Webhook"
-input.TextSize = 14
-input.BackgroundColor3 = Color3.fromRGB(25,25,25)
-input.TextColor3 = Color3.fromRGB(255,255,255)
-input.ClearTextOnFocus = false
-
-local saveBtn = Instance.new("TextButton", frame)
-saveBtn.Position = UDim2.new(0, 10, 0, 80)
-saveBtn.Size = UDim2.new(1, -20, 0, 30)
-saveBtn.Text = "Save Webhook"
-saveBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-saveBtn.TextColor3 = Color3.fromRGB(0,255,0)
-saveBtn.Font = Enum.Font.SourceSansBold
-
-local toggleBtn = Instance.new("TextButton", frame)
-toggleBtn.Position = UDim2.new(0, 10, 0, 120)
+    if SEND and WEBHOOK_URL ~= "" and request and tick() - lastSend >= SEND_INTERVAL then
+        lastSend = tick()
+        pcall(function()
+            request({
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode({
+                    content = "📊 FPS Roblox (Delta): "..fps
+                })
+            })
+        end)
+    end
+end)toggleBtn.Position = UDim2.new(0, 10, 0, 120)
 toggleBtn.Size = UDim2.new(1, -20, 0, 30)
 toggleBtn.Text = "Send FPS: OFF"
 toggleBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
