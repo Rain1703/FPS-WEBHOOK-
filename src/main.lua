@@ -1,88 +1,48 @@
-warn("Rain FPS Logger Started (Delta Safe)")
+-- Roblox FPS Monitor & Optimizer
+-- Author: Rain17C
 
-local request = request or http_request or (syn and syn.request)
+-- ===== CONFIG =====
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1442340447790825593/Hb8B2seQdvg1iub_Wv03EKszJ6HdLDPJ-vKSRFKn_Cu37Gn6qvBwBVFks6p41QWI5NxV"
+local SEND_INTERVAL = 10
+-- ==================
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local player = Players.LocalPlayer
 
-local WEBHOOK_URL = ""
-local SEND_INTERVAL = 10
-
--- === COMMAND QUA CHAT ===
--- !webhook <link>
--- !fps on / off
-
-local SEND = false
-
-Players.LocalPlayer.Chatted:Connect(function(msg)
-    if msg:sub(1,8) == "!webhook" then
-        WEBHOOK_URL = msg:sub(10)
-        warn("Webhook set")
-    elseif msg == "!fps on" then
-        SEND = true
-        warn("FPS sending ON")
-    elseif msg == "!fps off" then
-        SEND = false
-        warn("FPS sending OFF")
-    end
+-- ===== FPS OPTIMIZE =====
+pcall(function()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 end)
 
--- === FPS COUNTER ===
-local frames, fps = 0, 0
-local last = tick()
-local lastSend = 0
-
-RunService.RenderStepped:Connect(function()
-    frames += 1
-    if tick() - last >= 1 then
-        fps = frames
-        frames = 0
-        last = tick()
-        print("FPS:", fps)
+for _, v in ipairs(workspace:GetDescendants()) do
+    if v:IsA("BasePart") then
+        v.Material = Enum.Material.Plastic
+        v.Reflectance = 0
+    elseif v:IsA("Decal") or v:IsA("Texture") then
+        v:Destroy()
+    elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+        v.Enabled = false
     end
+end
 
-    if SEND and WEBHOOK_URL ~= "" and request and tick() - lastSend >= SEND_INTERVAL then
-        lastSend = tick()
-        pcall(function()
-            request({
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = HttpService:JSONEncode({
-                    content = "📊 FPS Roblox (Delta): "..fps
-                })
-            })
-        end)
-    end
-end)toggleBtn.Position = UDim2.new(0, 10, 0, 120)
-toggleBtn.Size = UDim2.new(1, -20, 0, 30)
-toggleBtn.Text = "Send FPS: OFF"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-toggleBtn.TextColor3 = Color3.fromRGB(255,80,80)
-toggleBtn.Font = Enum.Font.SourceSansBold
+-- ===== GUI =====
+local gui = Instance.new("ScreenGui")
+gui.Name = "RainFPS"
+gui.Parent = player:WaitForChild("PlayerGui")
 
--- Buttons
-saveBtn.MouseButton1Click:Connect(function()
-    WEBHOOK_URL = input.Text
-    saveBtn.Text = "Saved ✔"
-    task.delay(1.2, function()
-        saveBtn.Text = "Save Webhook"
-    end)
-end)
+local label = Instance.new("TextLabel", gui)
+label.Size = UDim2.new(0, 200, 0, 40)
+label.Position = UDim2.new(0, 10, 0, 10)
+label.BackgroundColor3 = Color3.fromRGB(15,15,15)
+label.BackgroundTransparency = 0.25
+label.TextColor3 = Color3.fromRGB(0,255,0)
+label.Font = Enum.Font.SourceSansBold
+label.TextSize = 24
+label.Text = "FPS: ..."
 
-toggleBtn.MouseButton1Click:Connect(function()
-    SEND_ENABLED = not SEND_ENABLED
-    if SEND_ENABLED then
-        toggleBtn.Text = "Send FPS: ON"
-        toggleBtn.TextColor3 = Color3.fromRGB(0,255,0)
-    else
-        toggleBtn.Text = "Send FPS: OFF"
-        toggleBtn.TextColor3 = Color3.fromRGB(255,80,80)
-    end
-end)
-
--- FPS counter
+-- ===== FPS COUNTER =====
 local frames, fps = 0, 60
 local last = tick()
 local lastSend = 0
@@ -93,10 +53,10 @@ RunService.RenderStepped:Connect(function()
         fps = frames
         frames = 0
         last = tick()
-        fpsLabel.Text = "FPS: " .. fps
+        label.Text = "FPS: " .. fps
     end
 
-    if SEND_ENABLED and WEBHOOK_URL ~= "" and request and tick() - lastSend >= SEND_INTERVAL then
+    if tick() - lastSend >= SEND_INTERVAL then
         lastSend = tick()
         pcall(function()
             request({
@@ -104,7 +64,7 @@ RunService.RenderStepped:Connect(function()
                 Method = "POST",
                 Headers = {["Content-Type"] = "application/json"},
                 Body = HttpService:JSONEncode({
-                    content = "📊 FPS Roblox (Delta): " .. fps
+                    content = "📊 FPS Roblox: " .. fps
                 })
             })
         end)
